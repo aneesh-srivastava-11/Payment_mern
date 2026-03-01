@@ -1,0 +1,65 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Tenant {
+  id        String   @id @default(uuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  users     User[]
+}
+
+model User {
+  id            String         @id @default(uuid())
+  tenantId      String
+  email         String         @unique
+  name          String?
+  tenant        Tenant         @relation(fields: [tenantId], references: [id])
+  subscriptions Subscription[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model Plan {
+  id            String         @id @default(uuid())
+  name          String         // e.g., 'free', 'pro'
+  price         Int            // in cents
+  currency      String         @default("usd")
+  providerPriceId String?      // ID on the payment provider side (e.g. Stripe Price ID)
+  subscriptions Subscription[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  UNPAID
+  TRIALING
+  INCOMPLETE
+}
+
+model Subscription {
+  id                 String             @id @default(uuid())
+  userId             String
+  planId             String
+  providerSubId      String?            @unique // ID on the payment provider side
+  providerCustomerId String?            // Customer ID on the payment provider side
+  status             SubscriptionStatus @default(INCOMPLETE)
+  currentPeriodStart DateTime?
+  currentPeriodEnd   DateTime?
+  cancelAtPeriodEnd  Boolean            @default(false)
+  user               User               @relation(fields: [userId], references: [id])
+  plan               Plan               @relation(fields: [planId], references: [id])
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  @@unique([userId, planId])
+}
