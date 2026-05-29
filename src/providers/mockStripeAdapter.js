@@ -18,12 +18,12 @@ class MockStripeAdapter extends PaymentProvider {
         return `cus_mock_${crypto.randomBytes(8).toString('hex')}`;
     }
 
-    async createCheckoutSession({ customerId, priceId, successUrl, cancelUrl }) {
+    async createCheckoutSession({ customerId, priceId, successUrl, cancelUrl, userId, planId, tenantId }) {
         logger.info(`[MockStripe] Creating checkout session for customer ${customerId}, price ${priceId}`);
         const sessionId = `cs_test_${crypto.randomBytes(8).toString('hex')}`;
         return {
             sessionId,
-            url: `https://mock-provider.com/checkout/${sessionId}`,
+            url: `https://mock-provider.com/checkout/${sessionId}?userId=${userId}&planId=${planId}&tenantId=${tenantId}`,
         };
     }
 
@@ -45,13 +45,26 @@ class MockStripeAdapter extends PaymentProvider {
         };
     }
 
+    async getSubscription(subscriptionId) {
+        logger.info(`[MockStripe] Getting subscription details for ${subscriptionId}`);
+        return {
+            id: subscriptionId,
+            status: 'active',
+            current_period_start: Math.floor(Date.now() / 1000),
+            current_period_end: Math.floor((Date.now() + 30 * 24 * 60 * 60 * 1000) / 1000),
+            cancel_at_period_end: false,
+        };
+    }
+
     verifyWebhook(payload, signature) {
-        // In a real implementation (e.g. Stripe), this verifies the signature against the secret
-        // For the mock, we just parse the JSON and trust it for development.
         logger.info('[MockStripe] Verifying webhook payload');
         try {
             if (!signature) {
                 throw new Error('No signature provided in webhook header');
+            }
+            // Simple validation: signature must match process.env.MOCK_STRIPE_WEBHOOK_SECRET or 'whsec_mock'
+            if (signature !== this.webhookSecret) {
+                throw new Error('Invalid signature provided in webhook header');
             }
             const event = JSON.parse(payload.toString());
             return event;

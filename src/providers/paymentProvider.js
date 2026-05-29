@@ -1,6 +1,6 @@
 /**
  * Abstract Payment Provider Interface
- * Any concrete provider (e.g. Stripe, PayPal, Mock) should implement these methods.
+ * Any concrete provider (e.g. Stripe, Razorpay, Mock) should implement these methods.
  */
 class PaymentProvider {
     /**
@@ -12,7 +12,7 @@ class PaymentProvider {
 
     /**
      * Create a checkout session (URL) for the user to complete payment.
-     * @param {Object} params - { customerId, priceId, successUrl, cancelUrl }
+     * @param {Object} params - { customerId, priceId, successUrl, cancelUrl, userId, planId, tenantId }
      * @returns {Promise<Object>} { sessionId, url }
      */
     async createCheckoutSession(params) { throw new Error('Not implemented'); }
@@ -39,6 +39,13 @@ class PaymentProvider {
      * @returns {Object} The parsed and verified event object
      */
     verifyWebhook(payload, signature) { throw new Error('Not implemented'); }
+
+    /**
+     * Retrieve subscription details from the provider.
+     * @param {string} subscriptionId - The provider's subscription ID
+     * @returns {Promise<Object>} Subscription details from provider
+     */
+    async getSubscription(subscriptionId) { throw new Error('Not implemented'); }
 }
 
 module.exports = PaymentProvider;
